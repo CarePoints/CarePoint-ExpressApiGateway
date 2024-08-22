@@ -1,9 +1,9 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const routeByRole = require("./components/routeByRole");
-const SERVICE_ENDPOINTS = require("./components/serviceEndpoints");
-const Email_Verification_ENDPOISNT = require("./components/emailVerification");
+const routeByRole = require("./Api/routeByRole");
+const SERVICE_ENDPOINTS = require("./Api/serviceEndpoints");
+const Email_Verification_ENDPOISNT = require("./Api/emailVerification");
 const app = express();
 const port = process.env.PORT || 7000;
 app.use(
@@ -22,14 +22,17 @@ app.post("/signup", async (req, res) => {
   role = data.role;
   try {
     let targetUrl = `${routeByRole(data.role)}/signup`;
-    console.log("tartyeeeeeeee", targetUrl, "datgaa", data);
 
     const response = await axios.post(targetUrl, data);
 
     if (role == "user") {
-      await axios.post("http://localhost:6000/admin-service/userDatas", data);
+      // await axios.post("http://localhost:6000/admin-service/userDatas", data);
     } else {
-      // await axios.post("http://localhost:6000/admin-service/doctorDatas", data);
+      console.log('doctor',data);
+      
+      // const result = await axios.post("http://localhost:6000/admin-service/doctorDatas", data);
+      // console.log('ersdfgsdfsd',result);
+          
     }
 
     res.status(200).json(response.data);
@@ -65,9 +68,17 @@ const checkCredentials = async (email, password) => {
 
   for (const endpoint of serviceEndpoints) {
     try {
+      console.log("sssssssssss");
+
       const response = await axios.post(endpoint, { email, password });
-      console.log(response);
-      if (response.status === 200) {
+      console.log("333333333");
+
+      if (response.data.error) {
+        console.log("3333");
+
+        return response.data;
+      } else {
+        console.log("22222");
         return {
           success: true,
           user: response.data.user,
@@ -99,6 +110,8 @@ app.post("/login", async (req, res) => {
       res
         .status(200)
         .json({ success: true, user: result.user, token: result.token });
+    } else if (result.error) {
+      res.json({ success: false, result });
     } else {
       res.status(401).json({ message: "Invalid credentials" });
     }
@@ -114,13 +127,17 @@ const checkEmail = async (email) => {
   const serviceEndpoints = Object.values(Email_Verification_ENDPOISNT);
 
   for (const endpoint of serviceEndpoints) {
+    console.log("eeeeeeeeeeeeeeeee2222222", endpoint);
     try {
       const response = await axios.post(endpoint, { email });
+      console.log("eeee", endpoint);
+
       if (response.status === 200) {
         console.log("heelo");
 
         return {
           success: true,
+          endpoint,
         };
       }
     } catch (error) {
@@ -136,13 +153,27 @@ const checkEmail = async (email) => {
 
 app.post("/forgot-password", async (req, res) => {
   let email = req.body;
+
   let ExistsEmail = await checkEmail(email);
-  console.log("111111", ExistsEmail.success);
 
   if (ExistsEmail.success) {
     return res.status(200).json({ message: "User found", email });
   }
   return res.status(400).json({ message: "User not found" });
+});
+
+app.post("/resetPassword", async (req, res) => {
+  console.log("reqwww", req.body);
+  const { email, password } = req.body;
+  const userResetPassword = await axios.post('http://localhost:4000/user-service/resetPassword',{email,password});
+  // if(!userResetPassword){
+  //   const userResetPassword = axios.post('http://localhost:5000/doctor-service/resetPassword',{email,password});
+  // }
+  console.log('resetPassword', userResetPassword);
+  if(userResetPassword.status==200){
+    return res.status(200).json({success:true, message:"Password rested Successfully"})
+  }
+  return res.status(500).json({success:false, message:'Failed to reset password'})
 });
 
 app.listen(port, () => {
