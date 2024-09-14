@@ -22,6 +22,7 @@ app.use(express.json());
 let role:  string | undefined;
 app.post("/signup", async (req:Request, res:Response) => {
   const { ...data } = req.body;
+  
   role = data.role;
   try {
     let targetUrl = `${routeByRole(data.role)}/signup`;
@@ -82,7 +83,7 @@ const checkCredentials = async (email:string, password:string) => {
 
 app.post("/login", async (req:Request, res:Response) => {
   const { email, password } = req.body;
-
+  console.log('sdfsdfsd', email)
   try {
     const result = await checkCredentials(email, password);
     if (result.success) {
